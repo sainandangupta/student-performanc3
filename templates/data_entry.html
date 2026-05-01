@@ -1,0 +1,133 @@
+{% extends 'base.html' %}
+{% block title %}Enter Marks — EduTrack{% endblock %}
+
+{% block content %}
+<div class="page-header animate-in">
+    <h4><i class="bi bi-pencil-square me-2"></i>{{ 'Add Student Marks & Attendance' if is_faculty is defined and is_faculty else 'Add / Update My Marks & Attendance' }}</h4>
+    <p class="text-muted mb-0">Fill in the details below and submit to save your records.</p>
+</div>
+
+<div class="card chart-card animate-in" style="animation-delay:.1s">
+    <div class="card-body">
+        <form id="dataEntryForm">
+            {% if is_faculty is defined and is_faculty %}
+            <!-- Faculty: select student -->
+            <div class="row g-3 mb-4">
+                <div class="col-md-6">
+                    <label for="studentSelect" class="form-label fw-semibold">Select Student</label>
+                    <select class="form-select" id="studentSelect" name="student_id" required>
+                        <option value="">— Choose a student —</option>
+                        {% for s in students %}
+                        <option value="{{ s.student_id }}">{{ s.name }} ({{ s.enrollment_no }} — {{ s.branch }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label for="subjectSelect" class="form-label fw-semibold">Select Subject</label>
+                    <select class="form-select" id="subjectSelect" name="subject_id" required>
+                        <option value="">— Choose a subject —</option>
+                        {% for subj in subjects %}
+                        <option value="{{ subj.subject_id }}">{{ subj.name }} (Max: {{ subj.max_marks }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            {% else %}
+            <input type="hidden" id="studentSelect" name="student_id" value="{{ student.student_id }}">
+            <div class="row g-3 mb-4">
+                <div class="col-md-6">
+                    <label for="subjectSelect" class="form-label fw-semibold">Select Subject</label>
+                    <select class="form-select" id="subjectSelect" name="subject_id" required>
+                        <option value="">— Choose a subject —</option>
+                        {% for subj in subjects %}
+                        <option value="{{ subj.subject_id }}">{{ subj.name }} (Max: {{ subj.max_marks }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            {% endif %}
+
+            <hr class="my-4">
+
+            <h6 class="fw-bold mb-3"><i class="bi bi-journal-check me-2"></i>Marks</h6>
+            <div class="row g-3 mb-4">
+                <div class="col-md-4">
+                    <label for="internalMarks" class="form-label">Internal Marks <small class="text-muted">(max 30)</small></label>
+                    <input type="number" class="form-control" id="internalMarks" name="internal_marks" min="0" max="30" step="0.5" required>
+                </div>
+                <div class="col-md-4">
+                    <label for="assignmentMarks" class="form-label">Assignment Marks <small class="text-muted">(max 20)</small></label>
+                    <input type="number" class="form-control" id="assignmentMarks" name="assignment_marks" min="0" max="20" step="0.5" required>
+                </div>
+                <div class="col-md-4">
+                    <label for="externalMarks" class="form-label">External Marks <small class="text-muted">(max 50)</small></label>
+                    <input type="number" class="form-control" id="externalMarks" name="external_marks" min="0" max="50" step="0.5" required>
+                </div>
+            </div>
+
+            <h6 class="fw-bold mb-3"><i class="bi bi-calendar-check me-2"></i>Attendance</h6>
+            <div class="row g-3 mb-4">
+                <div class="col-md-6">
+                    <label for="classesPresent" class="form-label">Classes Attended</label>
+                    <input type="number" class="form-control" id="classesPresent" name="classes_present" min="0" required>
+                </div>
+                <div class="col-md-6">
+                    <label for="totalClasses" class="form-label">Total Classes</label>
+                    <input type="number" class="form-control" id="totalClasses" name="total_classes" min="0" required>
+                </div>
+            </div>
+
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary" id="submitBtn">
+                    <i class="bi bi-check-circle me-1"></i>Save Records
+                </button>
+                <button type="reset" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-counterclockwise me-1"></i>Reset
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById('dataEntryForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const btn = document.getElementById('submitBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Saving...';
+
+    const fd = new FormData(this);
+    const data = Object.fromEntries(fd.entries());
+
+    try {
+        // Save marks
+        const marksRes = await fetch('/api/marks/add', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data),
+        });
+        const marksJson = await marksRes.json();
+        if (!marksRes.ok) throw new Error(marksJson.error || 'Failed to save marks');
+
+        // Save attendance
+        const attRes = await fetch('/api/attendance/add', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data),
+        });
+        const attJson = await attRes.json();
+        if (!attRes.ok) throw new Error(attJson.error || 'Failed to save attendance');
+
+        showToast('Records saved successfully!', 'success');
+        this.reset();
+    } catch (err) {
+        showToast(err.message, 'danger');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-check-circle me-1"></i>Save Records';
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,120 @@
+{% extends 'base.html' %}
+{% block title %}Login — EduTrack{% endblock %}
+
+{% block auth_content %}
+<div class="auth-container">
+    <!-- Animated background blobs -->
+    <div class="auth-bg">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+        <div class="blob blob-3"></div>
+    </div>
+
+    <div class="auth-card animate-in">
+        <div class="auth-header">
+            <i class="bi bi-mortarboard-fill auth-icon"></i>
+            <h1>EduTrack</h1>
+            <p>Student Performance Analysis System</p>
+        </div>
+
+        <!-- Tab Toggle -->
+        <ul class="nav nav-pills auth-tabs" id="authTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link {% if not show_register %}active{% endif %}" id="login-tab" data-bs-toggle="pill"
+                        data-bs-target="#loginPane" type="button" role="tab">Login</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link {% if show_register %}active{% endif %}" id="register-tab" data-bs-toggle="pill"
+                        data-bs-target="#registerPane" type="button" role="tab">Register</button>
+            </li>
+        </ul>
+
+        <div class="tab-content mt-4">
+            <!-- ─── Login ───────────────────────────────────────── -->
+            <div class="tab-pane fade {% if not show_register %}show active{% endif %}" id="loginPane" role="tabpanel">
+                <form method="POST" action="{{ url_for('login') }}" id="loginForm">
+                    <div class="form-floating mb-3">
+                        <input type="text" class="form-control" id="loginUsername" name="username" placeholder="Username" required>
+                        <label for="loginUsername"><i class="bi bi-person me-1"></i>Username</label>
+                    </div>
+                    <div class="form-floating mb-3">
+                        <input type="password" class="form-control" id="loginPassword" name="password" placeholder="Password" required>
+                        <label for="loginPassword"><i class="bi bi-lock me-1"></i>Password</label>
+                    </div>
+                    <div class="form-floating mb-4">
+                        <select class="form-select" id="loginRole" name="role" required>
+                            <option value="student">Student</option>
+                            <option value="faculty">Faculty</option>
+                        </select>
+                        <label for="loginRole"><i class="bi bi-shield me-1"></i>Login as</label>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-auth w-100" id="loginBtn">
+                        <i class="bi bi-box-arrow-in-right me-2"></i>Sign In
+                    </button>
+                </form>
+            </div>
+
+            <!-- ─── Register ────────────────────────────────────── -->
+            <div class="tab-pane fade {% if show_register %}show active{% endif %}" id="registerPane" role="tabpanel">
+                <form method="POST" action="{{ url_for('register') }}" id="registerForm">
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-6">
+                            <div class="form-floating">
+                                <input type="text" class="form-control" id="regName" name="fullname" placeholder="Full Name" required>
+                                <label for="regName">Full Name</label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-floating">
+                                <input type="text" class="form-control" id="regEnroll" name="enrollment" placeholder="Enrollment No.">
+                                <label for="regEnroll">Enrollment No.</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-6">
+                            <div class="form-floating">
+                                <select class="form-select" id="regBranch" name="branch">
+                                    <option value="CSE">CSE</option>
+                                    <option value="AIML">AIML</option>
+                                    <option value="ECE">ECE</option>
+                                    <option value="ME">ME</option>
+                                </select>
+                                <label for="regBranch">Branch</label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-floating">
+                                <select class="form-select" id="regRole" name="role">
+                                    <option value="student">Student</option>
+                                    <option value="faculty">Faculty</option>
+                                </select>
+                                <label for="regRole">Role</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-floating mb-3">
+                        <input type="email" class="form-control" id="regEmail" name="email" placeholder="Email" required>
+                        <label for="regEmail"><i class="bi bi-envelope me-1"></i>Email</label>
+                    </div>
+                    <div class="form-floating mb-3">
+                        <input type="text" class="form-control" id="regUsername" name="username" placeholder="Username" required>
+                        <label for="regUsername"><i class="bi bi-person me-1"></i>Username</label>
+                    </div>
+                    <div class="form-floating mb-4">
+                        <input type="password" class="form-control" id="regPassword" name="password" placeholder="Password" required minlength="6">
+                        <label for="regPassword"><i class="bi bi-lock me-1"></i>Password</label>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-auth w-100" id="registerBtn">
+                        <i class="bi bi-person-plus me-2"></i>Create Account
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <div class="auth-footer mt-4">
+            <small class="text-muted">Demo — <b>student1 / student123</b> or <b>faculty1 / faculty123</b></small>
+        </div>
+    </div>
+</div>
+{% endblock %}

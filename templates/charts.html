@@ -1,0 +1,88 @@
+{% extends 'base.html' %}
+{% block title %}Performance Charts — EduTrack{% endblock %}
+
+{% block content %}
+<div class="page-header animate-in">
+    <h4><i class="bi bi-bar-chart-line-fill me-2"></i>Performance Charts</h4>
+    <p class="text-muted mb-0">Interactive visualizations of your academic performance.</p>
+</div>
+
+<!-- Controls -->
+<div class="card chart-card mb-4 animate-in" style="animation-delay:.1s">
+    <div class="card-body">
+        <div class="d-flex flex-wrap gap-3 align-items-center">
+            <div class="btn-group" role="group" id="chartToggle">
+                <button type="button" class="btn btn-outline-primary active" data-chart="bar">
+                    <i class="bi bi-bar-chart-fill me-1"></i>Bar Chart
+                </button>
+                <button type="button" class="btn btn-outline-primary" data-chart="line">
+                    <i class="bi bi-graph-up me-1"></i>Line Graph
+                </button>
+                <button type="button" class="btn btn-outline-primary" data-chart="pie">
+                    <i class="bi bi-pie-chart-fill me-1"></i>Pie Chart
+                </button>
+            </div>
+            <select class="form-select form-select-sm" id="semesterSelect" style="max-width:180px;">
+                <option value="{{ student.semester }}">Semester {{ student.semester }}</option>
+            </select>
+            <button class="btn btn-outline-success btn-sm ms-auto" id="downloadChartBtn">
+                <i class="bi bi-download me-1"></i>Download as PNG
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Chart containers -->
+<div class="card chart-card animate-in" style="animation-delay:.2s">
+    <div class="card-body" style="min-height:450px;">
+        <div id="chartBarContainer">
+            <canvas id="fullBarChart" height="400"></canvas>
+        </div>
+        <div id="chartLineContainer" style="display:none;">
+            <canvas id="fullLineChart" height="400"></canvas>
+        </div>
+        <div id="chartPieContainer" style="display:none;">
+            <div class="d-flex justify-content-center">
+                <canvas id="fullPieChart" height="400" style="max-width:500px;"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const perfData = {{ perf|tojson }};
+</script>
+<script src="{{ url_for('static', filename='js/charts.js') }}"></script>
+<script>
+// Toggle chart visibility
+const containers = {
+    bar: document.getElementById('chartBarContainer'),
+    line: document.getElementById('chartLineContainer'),
+    pie: document.getElementById('chartPieContainer'),
+};
+document.getElementById('chartToggle').addEventListener('click', function(e) {
+    const btn = e.target.closest('button[data-chart]');
+    if (!btn) return;
+    this.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    Object.values(containers).forEach(c => c.style.display = 'none');
+    containers[btn.dataset.chart].style.display = '';
+});
+
+// Download current chart as PNG
+document.getElementById('downloadChartBtn').addEventListener('click', function() {
+    const activeBtn = document.querySelector('#chartToggle .active');
+    const chartType = activeBtn ? activeBtn.dataset.chart : 'bar';
+    const canvasMap = { bar: 'fullBarChart', line: 'fullLineChart', pie: 'fullPieChart' };
+    const canvas = document.getElementById(canvasMap[chartType]);
+    if (canvas) {
+        const link = document.createElement('a');
+        link.download = `performance_${chartType}_chart.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+    }
+});
+</script>
+{% endblock %}

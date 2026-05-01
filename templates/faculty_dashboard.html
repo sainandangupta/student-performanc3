@@ -1,0 +1,182 @@
+{% extends 'base.html' %}
+{% block title %}Faculty Dashboard — EduTrack{% endblock %}
+
+{% block content %}
+<div class="welcome-banner faculty-banner animate-in">
+    <div class="row align-items-center">
+        <div class="col-lg-8">
+            <h2 class="mb-1"><i class="bi bi-clipboard-data me-2"></i>Faculty Dashboard</h2>
+            <p class="mb-0 opacity-75">Class overview & student performance analytics</p>
+        </div>
+        <div class="col-lg-4 text-lg-end mt-3 mt-lg-0">
+            <a href="{{ url_for('faculty_data_entry') }}" class="btn btn-light btn-sm" id="btn-faculty-add">
+                <i class="bi bi-plus-circle me-1"></i>Add Student Marks
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Stat Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-xl-3" data-reveal data-delay="0s">
+        <div class="stat-card">
+            <div class="stat-icon"><i class="bi bi-people-fill"></i></div>
+            <div class="stat-info"><small>Total Students</small><h3 class="count-up" data-target="{{ total_students }}">0</h3></div>
+        </div>
+    </div>
+    <div class="col-6 col-xl-3" data-reveal data-delay=".05s">
+        <div class="stat-card">
+            <div class="stat-icon"><i class="bi bi-graph-up-arrow"></i></div>
+            <div class="stat-info">
+                <small>Class Average</small>
+                <h3><span class="count-up" data-target="{{ class_avg }}">0</span>%</h3>
+                <div class="progress-genz"><div class="progress-genz-bar" style="width:{{ class_avg }}%"></div></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-xl-3" data-reveal data-delay=".1s">
+        <div class="stat-card">
+            <div class="stat-icon"><i class="bi bi-exclamation-triangle"></i></div>
+            <div class="stat-info"><small>At-Risk Students</small><h3 class="count-up" data-target="{{ at_risk }}">0</h3></div>
+        </div>
+    </div>
+    <div class="col-6 col-xl-3" data-reveal data-delay=".15s">
+        <div class="stat-card">
+            <div class="stat-icon"><i class="bi bi-arrow-down-circle"></i></div>
+            <div class="stat-info"><small>Lowest Avg Subject</small><h3 class="fs-6 fw-bold">{{ lowest_subject or 'N/A' }}</h3></div>
+        </div>
+    </div>
+</div>
+
+<!-- Chart -->
+<div class="row g-4 mb-4">
+    <div class="col-12" data-reveal data-delay=".1s">
+        <div class="card chart-card">
+            <div class="card-header d-flex align-items-center justify-content-between">
+                <h6 class="mb-0"><i class="bi bi-bar-chart-fill me-2 text-primary"></i>Subject Avg vs Individual</h6>
+                <select class="form-select form-select-sm w-auto" id="chartStudentSelect">
+                    <option value="">Class Average Only</option>
+                    {% for ss in students_data %}
+                    <option value="{{ ss.student.student_id }}">{{ ss.student.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="card-body"><canvas id="facultyBarChart" height="300"></canvas></div>
+        </div>
+    </div>
+</div>
+
+<!-- Rankings Table -->
+<div class="card chart-card" data-reveal data-delay=".15s">
+    <div class="card-header">
+        <div class="row g-2 align-items-center">
+            <div class="col-md-4"><h6 class="mb-0"><i class="bi bi-list-ol me-2"></i>Student Rankings</h6></div>
+            <div class="col-md-8">
+                <div class="d-flex gap-2 flex-wrap justify-content-md-end">
+                    <input type="text" class="form-control form-control-sm" id="searchInput" placeholder="Search..." style="max-width:200px;">
+                    <select class="form-select form-select-sm" id="filterBranch" style="max-width:120px;">
+                        <option value="">All Branches</option>
+                        {% for b in branches %}<option value="{{ b }}">{{ b }}</option>{% endfor %}
+                    </select>
+                    <select class="form-select form-select-sm" id="filterSemester" style="max-width:130px;">
+                        <option value="">All Semesters</option>
+                        {% for sem in semesters %}<option value="{{ sem }}">Sem {{ sem }}</option>{% endfor %}
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0" id="rankingsTable">
+                <thead><tr>
+                    <th class="sortable" data-sort="rank">Rank <i class="bi bi-chevron-expand"></i></th>
+                    <th class="sortable" data-sort="name">Student <i class="bi bi-chevron-expand"></i></th>
+                    <th>Enrollment</th><th>Branch</th>
+                    <th class="sortable text-center" data-sort="pct">Overall % <i class="bi bi-chevron-expand"></i></th>
+                    <th class="sortable text-center" data-sort="att">Attendance <i class="bi bi-chevron-expand"></i></th>
+                    <th class="text-center">Status</th><th class="text-center">Action</th>
+                </tr></thead>
+                <tbody>
+                {% for ss in students_data %}
+                <tr data-branch="{{ ss.student.branch }}" data-semester="{{ ss.student.semester }}"
+                    data-name="{{ ss.student.name|lower }}" data-enroll="{{ ss.student.enrollment_no|lower }}"
+                    data-rank="{{ ss.rank }}" data-pct="{{ ss.overall_pct }}" data-att="{{ ss.attendance_pct }}">
+                    <td class="fw-bold text-center">{{ ss.rank }}</td>
+                    <td class="fw-semibold">
+                        {{ ss.student.name }}
+                        {% if ss.rank <= 3 %}<span class="badge badge-top ms-1" style="font-size:.65rem"><i class="bi bi-trophy-fill"></i></span>{% endif %}
+                    </td>
+                    <td><code>{{ ss.student.enrollment_no }}</code></td>
+                    <td><span class="badge bg-secondary">{{ ss.student.branch }}</span></td>
+                    <td class="text-center fw-bold">
+                        <span class="{{ 'text-success' if ss.overall_pct >= 60 else ('text-warning' if ss.overall_pct >= 40 else 'text-danger') }}">{{ ss.overall_pct }}%</span>
+                    </td>
+                    <td class="text-center">
+                        <span class="badge {{ 'bg-success' if ss.attendance_pct >= 75 else ('bg-warning text-dark' if ss.attendance_pct >= 60 else 'bg-danger') }}">{{ ss.attendance_pct }}%</span>
+                    </td>
+                    <td class="text-center">
+                        <span class="badge {{ 'bg-danger' if ss.status == 'At Risk' else 'bg-success' }}">{{ ss.status }}</span>
+                    </td>
+                    <td class="text-center">
+                        <button class="btn btn-sm btn-outline-primary view-student-btn" data-sid="{{ ss.student.student_id }}" data-bs-toggle="modal" data-bs-target="#studentModal">
+                            <i class="bi bi-eye me-1"></i>View
+                        </button>
+                    </td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Student Detail Modal -->
+<div class="modal fade" id="studentModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="modalStudentName"><i class="bi bi-person-lines-fill me-2"></i>Student Details</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row mb-3" id="modalInfo">
+                    <div class="col-md-3"><strong>Enrollment:</strong> <span id="modalEnroll"></span></div>
+                    <div class="col-md-3"><strong>Branch:</strong> <span id="modalBranch"></span></div>
+                    <div class="col-md-3"><strong>Semester:</strong> <span id="modalSemester"></span></div>
+                    <div class="col-md-3"><strong>Overall:</strong> <span id="modalOverall" class="fw-bold"></span></div>
+                </div>
+                <div class="row g-4 mb-4">
+                    <div class="col-lg-7"><canvas id="modalBarChart" height="260"></canvas></div>
+                    <div class="col-lg-5 d-flex align-items-center justify-content-center"><canvas id="modalPieChart" height="250"></canvas></div>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-sm table-bordered align-middle" id="modalTable">
+                        <thead class="table-light"><tr>
+                            <th>Subject</th><th class="text-center">Internal</th><th class="text-center">Assignment</th>
+                            <th class="text-center">External</th><th class="text-center">Total</th>
+                            <th class="text-center">Attendance</th><th class="text-center">Status</th>
+                        </tr></thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const subjectAverages = {{ subj_averages|tojson }};
+const studentsDataForChart = [];
+{% for ss in students_data %}
+studentsDataForChart.push({
+    student_id: {{ ss.student.student_id }},
+    name: "{{ ss.student.name }}",
+    subjects: {{ ss.perf.rows|tojson }}
+});
+{% endfor %}
+</script>
+<script src="{{ url_for('static', filename='js/charts.js') }}"></script>
+{% endblock %}

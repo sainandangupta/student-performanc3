@@ -1,0 +1,324 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard — EduTrack{% endblock %}
+
+{% block content %}
+<!-- Welcome Banner -->
+<div class="welcome-banner animate-in">
+    <div class="row align-items-center">
+        <div class="col-lg-8">
+            <h2 class="mb-1"><i class="bi bi-hand-wave me-2"></i>Welcome, {{ student.name }}!</h2>
+            <p class="mb-0 opacity-75">
+                <span class="badge bg-white bg-opacity-25 me-2">{{ student.enrollment_no }}</span>
+                <span class="badge bg-white bg-opacity-25 me-2">{{ student.branch }}</span>
+                <span class="badge bg-white bg-opacity-25">Semester {{ student.semester }}</span>
+            </p>
+        </div>
+        <div class="col-lg-4 text-lg-end mt-3 mt-lg-0">
+            {% if perf.overall_pct >= 75 %}
+            <span class="badge badge-top me-2"><i class="bi bi-trophy-fill me-1"></i>Top Performer</span>
+            {% elif perf.overall_pct < 50 %}
+            <span class="badge badge-improve me-2"><i class="bi bi-exclamation-circle me-1"></i>Needs Improvement</span>
+            {% endif %}
+            <a href="{{ url_for('data_entry') }}" class="btn btn-light btn-sm" id="btn-add-marks">
+                <i class="bi bi-plus-circle me-1"></i>Add / Update Marks
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Summary Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-xl-3" data-reveal data-delay="0s">
+        <div class="stat-card">
+            <div class="stat-icon"><i class="bi bi-trophy"></i></div>
+            <div class="stat-info">
+                <small>GPA (out of 10)</small>
+                <h3 class="count-up" data-target="{{ perf.gpa }}">0</h3>
+                <div class="progress-genz"><div class="progress-genz-bar" style="width:{{ (perf.gpa / 10 * 100)|round }}%"></div></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-xl-3" data-reveal data-delay=".05s">
+        <div class="stat-card">
+            <div class="stat-icon"><i class="bi bi-calendar-check"></i></div>
+            <div class="stat-info">
+                <small>Attendance</small>
+                <h3><span class="count-up" data-target="{{ perf.overall_att }}">0</span>%</h3>
+                <div class="progress-genz"><div class="progress-genz-bar {{ 'green' if perf.overall_att >= 75 else 'warn' }}" style="width:{{ perf.overall_att }}%"></div></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-xl-3" data-reveal data-delay=".1s">
+        <div class="stat-card">
+            <div class="stat-icon"><i class="bi bi-book"></i></div>
+            <div class="stat-info">
+                <small>Subjects</small>
+                <h3 class="count-up" data-target="{{ perf.num_subjects }}">0</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-xl-3" data-reveal data-delay=".15s">
+        <div class="stat-card">
+            <div class="stat-icon"><i class="bi bi-star"></i></div>
+            <div class="stat-info">
+                <small>Best Subject</small>
+                <h3 class="fs-6 fw-bold">{{ perf.best_subject }}</h3>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts -->
+<div class="row g-4 mb-4">
+    <div class="col-lg-8" data-reveal data-delay=".1s">
+        <div class="card chart-card">
+            <div class="card-header"><h6 class="mb-0"><i class="bi bi-bar-chart-fill me-2 text-primary"></i>Subject-wise Marks</h6></div>
+            <div class="card-body"><canvas id="marksBarChart" height="280"></canvas></div>
+        </div>
+    </div>
+    <div class="col-lg-4" data-reveal data-delay=".15s">
+        <div class="card chart-card">
+            <div class="card-header"><h6 class="mb-0"><i class="bi bi-pie-chart-fill me-2 text-success"></i>Attendance</h6></div>
+            <div class="card-body d-flex align-items-center justify-content-center"><canvas id="attendancePieChart" height="260"></canvas></div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-12" data-reveal data-delay=".15s">
+        <div class="card chart-card">
+            <div class="card-header"><h6 class="mb-0"><i class="bi bi-graph-up me-2 text-info"></i>Performance Trend (Subject-wise %)</h6></div>
+            <div class="card-body"><canvas id="trendLineChart" height="200"></canvas></div>
+        </div>
+    </div>
+</div>
+
+<!-- Performance Table -->
+<div class="card chart-card mb-4" data-reveal data-delay=".2s">
+    <div class="card-header"><h6 class="mb-0"><i class="bi bi-table me-2"></i>Subject-wise Performance</h6></div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0" id="perfTable">
+                <thead><tr>
+                    <th>Subject</th><th class="text-center">Internal</th><th class="text-center">Assignment</th>
+                    <th class="text-center">External</th><th class="text-center">Total</th>
+                    <th class="text-center">Attendance %</th><th class="text-center">Status</th>
+                </tr></thead>
+                <tbody>
+                {% for r in perf.rows %}
+                <tr>
+                    <td class="fw-semibold">{{ r.subject }}</td>
+                    <td class="text-center">{{ r.internal|int }}/{{ r.internal_max|int }}</td>
+                    <td class="text-center">{{ r.assignment|int }}/{{ r.assignment_max|int }}</td>
+                    <td class="text-center">{{ r.external|int }}/{{ r.external_max|int }}</td>
+                    <td class="text-center fw-bold">{{ r.total|int }}/{{ r.total_max|int }}</td>
+                    <td class="text-center">
+                        <span class="badge {{ 'bg-success' if r.attendance_pct >= 75 else ('bg-warning text-dark' if r.attendance_pct >= 60 else 'bg-danger') }}">{{ r.attendance_pct }}%</span>
+                    </td>
+                    <td class="text-center">
+                        <span class="badge {{ 'bg-success' if r.status == 'Pass' else 'bg-danger' }}">{{ r.status }}</span>
+                    </td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- AI-Powered Sections -->
+<div class="row g-4 mb-4">
+    <!-- Prediction -->
+    <div class="col-md-4" data-reveal data-delay=".1s">
+        <div class="card chart-card ai-card" id="predictionCard" style="cursor:pointer" onclick="loadPrediction()">
+            <div class="card-body text-center py-4" id="predictionContent">
+                <i class="bi bi-robot fs-1 text-primary"></i>
+                <h6 class="mt-2 mb-1">AI Prediction</h6>
+                <p class="text-muted small mb-2">Click to get AI-powered performance prediction</p>
+                <button class="btn btn-sm btn-primary"><i class="bi bi-magic me-1"></i>Analyze</button>
+            </div>
+        </div>
+    </div>
+    <!-- Alerts -->
+    <div class="col-md-4" data-reveal data-delay=".15s">
+        <div class="card chart-card ai-card" id="alertsCard" style="cursor:pointer" onclick="loadAlerts()">
+            <div class="card-body text-center py-4" id="alertsContent">
+                <i class="bi bi-bell fs-1 text-warning"></i>
+                <h6 class="mt-2 mb-1">Smart Alerts</h6>
+                <p class="text-muted small mb-2">Click to check for performance alerts</p>
+                <button class="btn btn-sm btn-warning"><i class="bi bi-shield-exclamation me-1"></i>Check</button>
+            </div>
+        </div>
+    </div>
+    <!-- Recommendations -->
+    <div class="col-md-4" data-reveal data-delay=".2s">
+        <div class="card chart-card ai-card" id="recsCard" style="cursor:pointer" onclick="loadRecommendations()">
+            <div class="card-body text-center py-4" id="recsContent">
+                <i class="bi bi-lightbulb fs-1 text-success"></i>
+                <h6 class="mt-2 mb-1">Recommendations</h6>
+                <p class="text-muted small mb-2">Click for personalized study suggestions</p>
+                <button class="btn btn-sm btn-success"><i class="bi bi-stars me-1"></i>Get Tips</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Expanded AI Results (hidden initially) -->
+<div id="aiResultsSection" class="mb-4" style="display:none;">
+    <div class="card chart-card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h6 class="mb-0"><i class="bi bi-cpu me-2 text-primary"></i><span id="aiSectionTitle">AI Results</span></h6>
+            <button class="btn btn-sm btn-outline-secondary" onclick="document.getElementById('aiResultsSection').style.display='none'">
+                <i class="bi bi-x-lg"></i>
+            </button>
+        </div>
+        <div class="card-body" id="aiResultsBody">
+            <!-- Dynamically populated -->
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>const perfData = {{ perf|tojson }};</script>
+<script src="{{ url_for('static', filename='js/charts.js') }}"></script>
+<script>
+const spinner = '<div class="text-center py-4"><div class="spinner-border text-primary" role="status"></div><p class="mt-2 text-muted small">Analyzing with Gemini AI...</p></div>';
+
+function showResult(title, html) {
+    const sec = document.getElementById('aiResultsSection');
+    document.getElementById('aiSectionTitle').textContent = title;
+    document.getElementById('aiResultsBody').innerHTML = html;
+    sec.style.display = '';
+    sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+async function loadPrediction() {
+    showResult('AI Prediction', spinner);
+    try {
+        const res = await fetch('/predict');
+        const d = await res.json();
+        if (d.error) throw new Error(d.error);
+
+        const cat = d.performance_category || 'N/A';
+        const risk = d.risk_level || 'N/A';
+        const gpa = d.predicted_gpa || 0;
+        const conf = d.confidence || 0;
+        const riskColor = risk === 'High' ? 'danger' : (risk === 'Medium' ? 'warning' : 'success');
+        const catColor = cat.includes('Excellent') || cat.includes('Good') ? 'success' : (cat.includes('Risk') || cat.includes('Below') ? 'danger' : 'warning');
+
+        let weakHtml = '';
+        if (d.weak_subjects && d.weak_subjects.length) weakHtml = d.weak_subjects.map(s => `<span class="badge bg-danger bg-opacity-10 text-danger me-1">${s}</span>`).join('');
+
+        let strongHtml = '';
+        if (d.strong_subjects && d.strong_subjects.length) strongHtml = d.strong_subjects.map(s => `<span class="badge bg-success bg-opacity-10 text-success me-1">${s}</span>`).join('');
+
+        showResult('AI Prediction', `
+            <div class="row g-3">
+                <div class="col-md-3 text-center">
+                    <div class="p-3">
+                        <h2 class="mb-0 text-primary fw-bold">${gpa}</h2>
+                        <small class="text-muted">Predicted GPA</small>
+                        <div class="progress-genz mt-2"><div class="progress-genz-bar" style="width:${gpa*10}%;transition:width 1.5s"></div></div>
+                    </div>
+                </div>
+                <div class="col-md-3 text-center">
+                    <div class="p-3">
+                        <span class="badge bg-${catColor} fs-6 px-3 py-2">${cat}</span>
+                        <br><small class="text-muted mt-1 d-block">Category</small>
+                    </div>
+                </div>
+                <div class="col-md-3 text-center">
+                    <div class="p-3">
+                        <span class="badge bg-${riskColor} fs-6 px-3 py-2">${risk} Risk</span>
+                        <br><small class="text-muted mt-1 d-block">Risk Level</small>
+                    </div>
+                </div>
+                <div class="col-md-3 text-center">
+                    <div class="p-3">
+                        <h2 class="mb-0 fw-bold">${conf}%</h2>
+                        <small class="text-muted">Confidence</small>
+                        <div class="progress-genz mt-2"><div class="progress-genz-bar green" style="width:${conf}%;transition:width 1.5s"></div></div>
+                    </div>
+                </div>
+            </div>
+            <hr>
+            <div class="row g-3">
+                ${weakHtml ? '<div class="col-md-6"><strong><i class="bi bi-arrow-down-circle text-danger me-1"></i>Weak Subjects:</strong><div class="mt-1">'+weakHtml+'</div></div>' : ''}
+                ${strongHtml ? '<div class="col-md-6"><strong><i class="bi bi-arrow-up-circle text-success me-1"></i>Strong Subjects:</strong><div class="mt-1">'+strongHtml+'</div></div>' : ''}
+            </div>
+            ${d.summary ? '<div class="mt-3 p-3 rounded" style="background:rgba(139,92,246,.06)"><i class="bi bi-chat-square-text me-2 text-primary"></i>'+d.summary+'</div>' : ''}
+        `);
+    } catch(e) {
+        showResult('AI Prediction', '<div class="alert alert-danger"><i class="bi bi-exclamation-triangle me-2"></i>'+e.message+'</div>');
+    }
+}
+
+async function loadAlerts() {
+    showResult('Smart Alerts', spinner);
+    try {
+        const res = await fetch('/alerts');
+        const d = await res.json();
+        if (d.error) throw new Error(d.error);
+
+        const alerts = d.alerts || [];
+        if (!alerts.length) {
+            showResult('Smart Alerts', '<div class="text-center py-3 text-success"><i class="bi bi-check-circle fs-1"></i><p class="mt-2">No alerts! You are doing great.</p></div>');
+            return;
+        }
+        let html = '<div class="d-flex flex-column gap-2">';
+        alerts.forEach(a => {
+            const color = a.type === 'critical' ? 'danger' : (a.type === 'warning' ? 'warning' : 'info');
+            html += `<div class="alert alert-${color} d-flex align-items-start mb-0 py-2">
+                <i class="bi bi-${a.icon || 'info-circle'} me-2 mt-1 fs-5"></i>
+                <div><strong>${a.title}</strong><br><small>${a.message}</small></div>
+            </div>`;
+        });
+        html += '</div>';
+        showResult(`Smart Alerts (${alerts.length})`, html);
+    } catch(e) {
+        showResult('Smart Alerts', '<div class="alert alert-danger"><i class="bi bi-exclamation-triangle me-2"></i>'+e.message+'</div>');
+    }
+}
+
+async function loadRecommendations() {
+    showResult('Recommendations', spinner);
+    try {
+        const res = await fetch('/recommendations');
+        const d = await res.json();
+        if (d.error) throw new Error(d.error);
+
+        let html = '';
+
+        if (d.general_advice) {
+            html += `<div class="p-3 rounded mb-3" style="background:rgba(16,185,129,.06)"><i class="bi bi-quote fs-4 text-success"></i><p class="mb-0 mt-1">${d.general_advice}</p></div>`;
+        }
+
+        if (d.study_plan && d.study_plan.length) {
+            html += '<h6 class="fw-bold mt-3"><i class="bi bi-journal-bookmark me-2"></i>Study Plan</h6><div class="table-responsive"><table class="table table-sm"><thead><tr><th>Subject</th><th>Hours/Week</th><th>Priority</th><th>Tip</th></tr></thead><tbody>';
+            d.study_plan.forEach(s => {
+                const pc = s.priority === 'High' ? 'danger' : (s.priority === 'Medium' ? 'warning' : 'success');
+                html += `<tr><td class="fw-semibold">${s.subject}</td><td>${s.hours_per_week}h</td><td><span class="badge bg-${pc}">${s.priority}</span></td><td class="small">${s.tip || ''}</td></tr>`;
+            });
+            html += '</tbody></table></div>';
+        }
+
+        if (d.focus_areas && d.focus_areas.length) {
+            html += '<h6 class="fw-bold mt-3"><i class="bi bi-bullseye me-2"></i>Focus Areas</h6><div class="d-flex flex-wrap gap-2">';
+            d.focus_areas.forEach(f => html += `<span class="badge bg-primary bg-opacity-10 text-primary px-3 py-2">${f}</span>`);
+            html += '</div>';
+        }
+
+        if (d.time_management && d.time_management.length) {
+            html += '<h6 class="fw-bold mt-3"><i class="bi bi-clock me-2"></i>Time Management Tips</h6><ul class="mb-0">';
+            d.time_management.forEach(t => html += `<li class="small">${t}</li>`);
+            html += '</ul>';
+        }
+
+        showResult('Recommendations', html || '<p class="text-muted">No recommendations available.</p>');
+    } catch(e) {
+        showResult('Recommendations', '<div class="alert alert-danger"><i class="bi bi-exclamation-triangle me-2"></i>'+e.message+'</div>');
+    }
+}
+</script>
+{% endblock %}
