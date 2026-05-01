@@ -10,7 +10,7 @@ import re
 import time
 import requests
 
-GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY', 'AIzaSyDJeyQ6WWIHPslIs8knLsqziO0AEzF3XbI')
+GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY', 'Enter gemini api key')
 GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent'
 
 
